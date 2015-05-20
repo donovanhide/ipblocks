@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>IP Blocks Visualisation</title>
+  <meta name="description" content="A visualisation of all the IPv4 Addresses, organised by block, length, country and time of registration." /> 
+  <link rel="stylesheet" href="/style.css" type="text/css" media="screen" charset="utf-8">
+  <script src="lib.js"></script>
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-295933-22']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+</head>
+<body>
+  <h1>A visualisation of all the IPv4 Addresses, organised by block, length, country and time of registration. <div class="g-plusone" data-href="http://ipblocks.net"></div></h1>
+  <p>Using the amazing <a href="https://github.com/mbostock/d3/">d3.js</a> and <a href="http://square.github.com/crossfilter/">Cross Filter</a> by <a href="http://bost.ocks.org/mike/">Mike Bostock</a>. Data from <a href="http://software77.net/geo-ip/">Software77</a>. Hacked by <a href="https://plus.google.com/100618296000790744022/about?rel=author">Donovan Hide</a>.</p>
+  <a href="http://github.com/donovanhide/IP-Blocks-Visualisation"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://a248.e.akamai.net/assets.github.com/img/e6bef7a091f5f3138b8cd40bc3e114258dd68ddf/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub"></a>
+  <div id="map">
+    <svg id="world"></svg>
+  </div>
+  <div id="charts-right">
+    <button class="first active" id="allocations">Allocations</button>
+    <button class="last" id="ips">IP Addresses</button>
+    <div id="totals"></div>
+    <div id="country-chart" class="chart">
+      <div class="title">Country</div>
+    </div>
+    <div id="year-chart" class="chart">
+      <div class="title">Year</div>
+    </div>
+    <div id="a-chart" class="chart">
+      <div class="title">Class A</div>
+    </div>
+    <div id="b-chart" class="chart">
+      <div class="title">Class B</div>
+    </div>
+    <div id="c-chart" class="chart">
+      <div class="title">Class C</div>
+    </div>
+    <div id="d-chart" class="chart">
+      <div class="title">Class D</div>
+    </div>
+    <div id="length-chart" class="chart">
+      <div class="title">Length</div>
+    </div>
+  </div>
+  <div id="plot"></div>
+  <div id="lists">
+    <div id="ip-list" class="list"></div>
+  </div>
+  
+  <script>
+  var layers=new Array(256);
+  for (i=0;i<256;i++){
+    plot=document.getElementById("plot");
+    canvas = document.createElement('canvas');  
+    canvas.setAttribute('style','z-index: '+(255-i)+';margin-left:'+(i)+'px;margin-top:'+(255-i)+'px');
+    canvas.setAttribute('class','layer');  
+    canvas.setAttribute('width',256);  
+    canvas.setAttribute('height',256);
+    context=canvas.getContext("2d");  
+    plot.appendChild(canvas); 
+    layers[i]=context;
+  }
+
+  function setPixel(image,index){
+    image.data[index+0] = 0x4D;
+    image.data[index+1] = 0x87;
+    image.data[index+2] = 0xB7;
+    image.data[index+3] = 0xFF;    
+  }
+
+  function updateLayers(data){
+    count=0;
+    for (i=0;i<256;i++){
+      imageData=layers[i].createImageData(256,256)
+      if (data.hasOwnProperty(i)){
+        count++;
+        for (j=0;j<data[i].length;j++){
+          block=data[i][j];
+          // Do Class B's
+          for (x = block.b1; x<block.b2; x++) {
+            for (y = block.c1; y<block.c2; y++) {
+              setPixel(imageData,(x+y*256)*4);
+            }
+          }            
+          //Do Class C's
+          for (y = block.c1; y<block.c2; y++) {
+            setPixel(imageData,(block.b1+y*256)*4);
+          }
+          // Do Class D's
+          setPixel(imageData,(block.b1+block.c1*256)*4);
+        }
+      }
+      layers[i].putImageData(imageData, 0, 0); 
+    }
+    d3.selectAll(".layer").style('opacity',d3.min([0.5,4.0/count]));
+  }
+  
+  function updateMap(data){
+    d3.selectAll('svg#world path').classed("selected",function(){return data.hasOwnProperty(this.id); });
+  }
+  
+  function updateList(data){
+    console.log(data);
+  }
+  
+  d3.json("world-countries.json", function(collection) {
+    var xy = d3.geo.mercator().translate([256, 256]).scale(512),
+        path = d3.geo.path().projection(xy);
+    d3.select("svg#world")
+      .selectAll("path")
+        .data(collection.features)
+      .enter().append("svg:path")
+        .attr("id",function(d){return d.id;})
+        .attr("d", path);
+  });
+  
+  d3.json("ips.json", function(json) {
+    var nestByClass = d3.nest()
+        .key(function(d){ return d.a})
+        .sortKeys(d3.ascending)
+        .sortValues(function(a,b){return a.i<b.i?-1:a.i>b.i?1:0;});
+    var nestByCountry = d3.nest()
+        .key(function(d){return json.countries[d.co]});
+    var ips=[];
+    counter=0;
+    json.data.split("|").forEach(function(row, i) {
+      cells=row.split(","),
+      start=json.starts[parseInt(cells[0],16)]+counter,
+      length=json.lengths[parseInt(cells[1],16)],
+      counter=start+length,
+      end=counter-1;
+      ips.push({
+        i: i,
+        r: new Date(json.registrations[parseInt(cells[2],16)]*100000),
+        co: parseInt(cells[3],16),
+        a: (start&0xFF000000)>>>24,
+        b1: (start&0x00FF0000)>>>16,
+        b2: (end&0x00FF0000)>>>16,
+        c1: (start&0x0000FF00)>>>8,
+        c2: (end&0x0000FF00)>>>8,
+        d1: start&0x000000FF,
+        d2: end&0x000000FF,
+        l: length
+      });
+    });
+        
+    // Create the crossfilter and relevant dimensions and groups.
+    ip = crossfilter(ips);
+    all = ip.groupAll();
+    registered = ip.dimension(function(d) { return d.r; }),
+    registrations = registered.group(function(d) {return d3.time.year(d);}),
+    length = ip.dimension(function(d){return d.l;});
+    lengths = length.group();
+    classA = ip.dimension(function(d){return d.a});
+    classAs = classA.group();
+    classB = ip.dimension(function(d){return d.b1});
+    classBs = classB.group();
+    classC = ip.dimension(function(d){return d.c1});
+    classCs = classC.group();
+    classD = ip.dimension(function(d){return d.d1});
+    classDs = classD.group();
+    country = ip.dimension(function(d){return d.co});
+    countries = country.group();
+    groups=[all,registrations,lengths,classAs,classBs,classCs,classDs,countries];
+
+    var charts = [
+        barChart()
+          .dimension(country)
+          .group(countries)
+        .x(d3.scale.linear()
+          .domain(d3.extent(countries.all(),function(d){return d.key}))
+          .range([0,270])),
+        barChart()
+          .dimension(registered)
+          .group(registrations)
+        .x(d3.time.scale()
+          .domain([d3.min(registrations.all(),function(d){return d.key;}),new Date(2015,0,1)])
+          .rangeRound([0,270])),
+        barChart()
+          .dimension(classA)
+          .group(classAs)
+        .x(d3.scale.linear()
+          .domain([0,270])
+          .range([0,270])),
+        barChart()
+          .dimension(classB)
+          .group(classBs)
+        .x(d3.scale.linear()
+          .domain([0,270])
+          .range([0,270])),
+        barChart()
+          .dimension(classC)
+          .group(classCs)
+        .x(d3.scale.linear()
+          .domain([0,270])
+          .range([0,270])),
+        barChart()
+          .dimension(classD)
+          .group(classDs)
+        .x(d3.scale.linear()
+          .domain([0,270])
+          .range([0,270])),
+        barChart()
+          .dimension(length)
+          .group(lengths)
+        .x(d3.scale.log()
+          .domain(d3.extent(lengths.all(),function(d){return d.key;}))
+          .range([0,270])
+          .nice())
+    ];
+
+    // Given our array of charts, which we assume are in the same order as the
+    // .chart elements in the DOM, bind the charts to the DOM and render them.
+    // We also listen to the chart's brush events to update the display.
+    var chart = d3.selectAll(".chart")
+        .data(charts)
+        .each(function(chart) { chart.on("brush", renderAll).on("brushend", renderAll); });
+
+    d3.select("#allocations").on("click",function(){
+      groups.forEach(function(d){d.reduceSum(function(d){return 1;})});
+      d3.select("#allocations").classed("active",true);
+      d3.select("#ips").classed("active",false);
+      renderAll();
+    })
+
+    d3.select("#ips").on("click",function(){
+      groups.forEach(function(d){d.reduceSum(function(d){return d.l;})});
+      d3.select("#allocations").classed("active",false);
+      d3.select("#ips").classed("active",true);
+      renderAll();
+    })
+
+    renderAll();
+
+    // Renders the specified chart or list.
+    function render(method) {
+      d3.select(this).call(method);
+    }
+
+    // Whenever the brush moves, re-rendering everything.
+    function renderAll() {
+      chart.each(render);
+      updateLayers(nestByClass.map(classA.top(Infinity)));
+      updateMap(nestByCountry.map(country.top(Infinity)));
+      // updateList(nestByClass.map(classA.top(100))); Not implemented yet!
+      d3.select("#totals").text(d3.format(",d")(all.value())+(d3.select("#allocations").classed("active")?" Allocation":" IP")+"'s selected.");
+    }
+
+    window.filter = function(filters) {
+      filters.forEach(function(d, i) { charts[i].filter(d); });
+      renderAll();
+    };
+
+    window.reset = function(i) {
+      charts[i].filter(null);
+      renderAll();
+    };
+
+  });
+  </script>
+  <script type="text/javascript">
+    window.___gcfg = {lang: 'en-GB'};
+
+    (function() {
+      var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+      po.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+@import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,700);
+
+body {
+  font-family: "Helvetica Neue";
+  margin: 40px auto;
+  width: 960px;
+  min-height: 2000px;
+}
+
+#body {
+  position: relative;
+}
+
+footer {
+  padding: 2em 0 1em 0;
+  font-size: 12px;
+}
+
+h1 {
+  font-size: 36px;
+  margin-top: .3em;
+  margin-bottom: 0;
+}
+
+h1 + h2 {
+  margin-top: 0;
+}
+
+h2 {
+  font-weight: 400;
+  font-size: 28px;
+}
+
+h1, h2 {
+  font-family: "Yanone Kaffeesatz";
+  text-rendering: optimizeLegibility;
+}
+
+#body > p {
+  line-height: 1.5em;
+  width: 640px;
+  text-rendering: optimizeLegibility;
+}
+
+#plot{
+  width:512px;
+  height:512px;
+  float:left;
+}
+
+#map{
+  width:512px;
+  height:360px;
+  float:left;
+}
+
+#map path {
+  fill: lightgray;
+  stroke: #fff;
+}
+
+#map path.selected {
+  fill: steelblue;
+}
+
+#map svg{
+  width:512px;
+  height:360px;
+  overflow: hidden;
+}
+
+.layer{
+  position: absolute;
+}
+
+#charts-right,#charts-bottom {
+  padding: 10px 0;
+}
+
+#charts-right{
+  width:300px;
+  float:right;
+}
+
+.chart {
+  display: inline-block;
+  height: 101px;
+  margin-bottom: 10px;
+}
+
+.reset {
+  padding-left: 1em;
+  font-size: smaller;
+  color: #ccc;
+}
+
+.background.bar {
+  fill: #ccc;
+}
+
+.foreground.bar {
+  fill: steelblue;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.brush rect.extent {
+  fill: steelblue;
+  fill-opacity: .125;
+}
+
+.brush .resize path {
+  fill: #eee;
+  stroke: #666;
+}
+
+#range-chart,#year-chart,#block-chart,#a-chart,#b-chart,#c-chart,#d-chart {
+  width: 270px;
+}
+
+#country-chart {
+  width: 920px;
+}
+
+div#totals{
+  height: 16px;
+  margin:10px;
+}
+
+#ip-list {
+  min-height: 1024px;
+}
+
+#ip-list .date,
+#ip-list .day {
+  margin-bottom: .4em;
+}
+
+#ip-list .ip {
+  line-height: 1.5em;
+  background: #eee;
+  width: 640px;
+  margin-bottom: 1px;
+}
+
+#ip-list .time {
+  color: #999;
+}
+
+#ip-list .ip div {
+  display: inline-block;
+  width: 100px;
+}
+
+#ip-list div.distance,
+#ip-list div.delay {
+  width: 160px;
+  padding-right: 10px;
+  text-align: right;
+}
+
+#ip-list .early {
+  color: green;
+}
+
+button {
+  font: 14px Helvetica Neue;
+  background-color: #222;
+  background-image: -moz-linear-gradient(top, rgba(255,255,255,.25), rgba(255,255,255,.11));
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgba(255,255,255,.25)),color-stop(1, rgba(255,255,255,.11)));
+  background-image: -webkit-linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.11));
+  color: #fff;
+  text-rendering: optimizeLegibility;
+  text-shadow: 0 -1px 1px #222;
+  padding: 6px 10px 6px 10px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid #222;
+  margin: 0;
+  -moz-box-shadow: 0 1px 3px #999;
+  -webkit-box-shadow: 0 1px 3px #999;
+}
+
+button.first {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+button.last {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+button.active {
+  background-color: rgb(65,102,133);
+}
+
+button:hover {
+  background-color: steelblue;
+}
+
